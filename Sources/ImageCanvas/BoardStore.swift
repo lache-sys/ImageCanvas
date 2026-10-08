@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftUI
 
@@ -9,6 +10,14 @@ struct BoardHistory: Codable {
         let name: String
         let boardPath: String
         let updatedAt: Date
+    }
+}
+struct RecentURLs: Codable {
+    var urls: [URLInfo]
+
+    struct URLInfo: Identifiable, Codable {
+        let id: UUID
+        let url: URL
     }
 }
 
@@ -70,15 +79,12 @@ final class BoardStore: ObservableObject {
     func newEmptyTab() {
         clearFolderScanState()
         board = .empty()
-        if NSApp.keyWindow != nil {
-            NSApp.sendAction(#selector(NSWindow.newWindowForTab(_:)), to: nil, from: nil)
-        }
+        openNewTab()
+        saveCurrentBoard()
     }
     func newTab() {
         board = .empty()
-        if NSApp.keyWindow != nil {
-            NSApp.sendAction(#selector(NSWindow.newWindowForTab(_:)), to: nil, from: nil)
-        }
+        openNewTab()
         saveCurrentBoard()
     }
 
@@ -90,6 +96,20 @@ final class BoardStore: ObservableObject {
     func openFolderUsingPanel() {
         guard let selection = ImportPanel.pickFolder() else { return }
         openFolder(selection.url, includeSubfolders: selection.includeSubfolders)
+    }
+
+    private func openNewTab() {
+        guard let keyWindow = NSApp.keyWindow else { return }
+        guard let tabGroup = keyWindow.tabGroup else { return }
+#if true
+        guard let appDelegate = NSApp.delegate else { return }
+        guard let openUntitledFile = appDelegate.applicationOpenUntitledFile else { return }
+        if !openUntitledFile(NSApp) { return }
+#else
+        openWindow()
+#endif
+        guard let window = NSApplication.shared.windows.last else { return }
+        tabGroup.addWindow(window)
     }
 
     func openRecent(_ recent: BoardHistory.BoardInfo) {
