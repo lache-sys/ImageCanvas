@@ -18,6 +18,72 @@ struct ContentView: View {
     @AppStorage(SnapshotPreferences.captureCurrentViewKey) private var capturesCurrentView = false
 
     var body: some View {
+        appearanceEventHandlers
+    }
+
+    private var appearanceEventHandlers: some View {
+        lifecycleEventHandlers
+            .onChange(of: drawingColorPicker.hue) { _, _ in syncDrawingColor() }
+            .onChange(of: drawingColorPicker.saturation) { _, _ in syncDrawingColor() }
+            .onChange(of: drawingColorPicker.brightness) { _, _ in syncDrawingColor() }
+            .onChange(of: drawingColorPicker.opacity) { _, _ in syncDrawingColor() }
+    }
+
+    private var lifecycleEventHandlers: some View {
+        commandEventHandlers
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                store.scanCurrentFolderForUpdates()
+            }
+    }
+
+    private var commandEventHandlers: some View {
+        mainLayout
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasAddImages)) { _ in
+                addImages()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasOpenFolder)) { _ in
+                openFolder()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasNewBoard)) { _ in
+                store.newBoard()
+                post(.imageCanvasFitAll)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasNewEmptyTab)) { _ in
+                store.newEmptyTab()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasNewTab)) { _ in
+                store.newTab()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasToggleChrome)) { _ in
+                toggleChrome()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasToggleDrawingMode)) { _ in
+                setDrawingMode(!isDrawingModeEnabled)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasDisableDrawingMode)) { _ in
+                setPointerMode()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasToggleTextMode)) { _ in
+                setTextMode(!isTextModeEnabled)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasShowSnapshotSettings)) { _ in
+                isSnapshotSettingsPresented = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasCheckForUpdates)) { _ in
+                updateController.presentAndCheck()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasSnapshotProgress)) { notification in
+                guard let isExporting = notification.object as? Bool else { return }
+                withAnimation(.easeOut(duration: 0.16)) {
+                    isLargeSnapshotExporting = isExporting
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .imageCanvasNotice)) { notification in
+                guard let notice = notification.object as? CanvasNotice else { return }
+                showNotice(notice)
+            }
+    }
+    private var mainLayout: some View {
         ZStack {
             CanvasViewRepresentable(
                 board: store.board,
@@ -56,59 +122,12 @@ struct ContentView: View {
         .background(Color.black)
         .ignoresSafeArea(.container, edges: .all)
         .frame(minWidth: 900, minHeight: 620)
-        .sheet(isPresented: $isSnapshotSettingsPresented) {
-            snapshotSettingsSheet
-        }
+        .sheet(isPresented: $isSnapshotSettingsPresented) { snapshotSettingsSheet }
         .sheet(isPresented: $updateController.isPresented) {
             AppUpdateSheet(controller: updateController) {
                 store.saveCurrentBoard()
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasAddImages)) { _ in
-            addImages()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasOpenFolder)) { _ in
-            openFolder()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasNewBoard)) { _ in
-            store.newBoard()
-            post(.imageCanvasFitAll)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasToggleChrome)) { _ in
-            toggleChrome()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasToggleDrawingMode)) { _ in
-            setDrawingMode(!isDrawingModeEnabled)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasDisableDrawingMode)) { _ in
-            setPointerMode()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasToggleTextMode)) { _ in
-            setTextMode(!isTextModeEnabled)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasShowSnapshotSettings)) { _ in
-            isSnapshotSettingsPresented = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasCheckForUpdates)) { _ in
-            updateController.presentAndCheck()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasSnapshotProgress)) { notification in
-            guard let isExporting = notification.object as? Bool else { return }
-            withAnimation(.easeOut(duration: 0.16)) {
-                isLargeSnapshotExporting = isExporting
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .imageCanvasNotice)) { notification in
-            guard let notice = notification.object as? CanvasNotice else { return }
-            showNotice(notice)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            store.scanCurrentFolderForUpdates()
-        }
-        .onChange(of: drawingColorPicker.hue) { _, _ in syncDrawingColor() }
-        .onChange(of: drawingColorPicker.saturation) { _, _ in syncDrawingColor() }
-        .onChange(of: drawingColorPicker.brightness) { _, _ in syncDrawingColor() }
-        .onChange(of: drawingColorPicker.opacity) { _, _ in syncDrawingColor() }
     }
 
     private var controlsOverlayContent: some View {
@@ -696,6 +715,11 @@ private struct ProjectFloatingMenuRow: View {
                 isHovered = hovered
             }
         }
+    }
+}
+
+struct OnRecieve: View {
+    var body: some View {
     }
 }
 

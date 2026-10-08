@@ -26,5 +26,7 @@
 	<true/>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
 	<true/>
+  <key>NSWindowTabbingMode</key>
+  <string>always</string>
 </dict>
 </plist>

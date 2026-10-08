@@ -1,9 +1,21 @@
 import Foundation
+import SwiftUI
+
+struct BoardHistory: Codable {
+    var boards: [BoardInfo]
+
+    struct BoardInfo: Identifiable, Codable {
+        let id: UUID
+        let name: String
+        let boardPath: String
+        let updatedAt: Date
+    }
+}
 
 @MainActor
 final class BoardStore: ObservableObject {
     @Published private(set) var board: BoardProject
-    @Published private(set) var recents: [RecentBoard]
+    @Published private(set) var recents: [BoardHistory.BoardInfo]
     @Published private(set) var pendingFolderItems: [BoardItem] = []
 
     let imageCache = ImageCache()
@@ -16,7 +28,6 @@ final class BoardStore: ObservableObject {
     private var folderImportToken = UUID()
     private var scannedFolderBoardID: UUID?
     private var scannedFolderItemsByPath: [String: BoardItem] = [:]
-
     init() {
         let fileManager = FileManager.default
         let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
@@ -56,6 +67,20 @@ final class BoardStore: ObservableObject {
         board = .empty()
         saveCurrentBoard()
     }
+    func newEmptyTab() {
+        clearFolderScanState()
+        board = .empty()
+        if NSApp.keyWindow != nil {
+            NSApp.sendAction(#selector(NSWindow.newWindowForTab(_:)), to: nil, from: nil)
+        }
+    }
+    func newTab() {
+        board = .empty()
+        if NSApp.keyWindow != nil {
+            NSApp.sendAction(#selector(NSWindow.newWindowForTab(_:)), to: nil, from: nil)
+        }
+        saveCurrentBoard()
+    }
 
     func addImagesUsingPanel() {
         guard let urls = ImportPanel.pickImages() else { return }
@@ -67,11 +92,11 @@ final class BoardStore: ObservableObject {
         openFolder(selection.url, includeSubfolders: selection.includeSubfolders)
     }
 
-    func openRecent(_ recent: RecentBoard) {
+    func openRecent(_ recent: BoardHistory.BoardInfo) {
         guard let loaded = Self.loadBoard(from: URL(fileURLWithPath: recent.boardPath), decoder: decoder) else {
             recents.removeAll { $0.id == recent.id }
             saveRecents()
-            return
+             return
         }
 
         if loaded.sourceKind == .folder, let sourceFolderPath = loaded.sourceFolderPath {
@@ -413,7 +438,7 @@ final class BoardStore: ObservableObject {
 
     private func touchRecent(for board: BoardProject, boardURL: URL? = nil) {
         let resolvedURL = boardURL ?? url(for: board.id)
-        let recent = RecentBoard(
+        let recent = BoardHistory.BoardInfo(
             id: board.id,
             name: board.name,
             boardPath: resolvedURL.path,
@@ -428,7 +453,7 @@ final class BoardStore: ObservableObject {
 
     private func saveRecents() {
         do {
-            let data = try encoder.encode(recents)
+            let data = try encoder.encode(BoardHistory(boards: recents))
             try data.write(to: recentsURL, options: [.atomic])
         } catch {
             NSLog("ImageCanvas recents save failed: \(error.localizedDescription)")
@@ -439,13 +464,18 @@ final class BoardStore: ObservableObject {
         boardsURL.appendingPathComponent("\(boardID.uuidString).json")
     }
 
-    private static func loadRecents(from url: URL, decoder: JSONDecoder) -> [RecentBoard] {
-        guard let data = try? Data(contentsOf: url),
-              let recents = try? decoder.decode([RecentBoard].self, from: data) else {
+    private static func loadRecents(from url: URL, decoder: JSONDecoder) -> [BoardHistory.BoardInfo] {
+        guard let data = try? Data(contentsOf: url) else { return [] }
+
+        let boards: [BoardHistory.BoardInfo]
+        if let BoardHistory = try? decoder.decode(BoardHistory.self, from: data) {
+            boards = BoardHistory.boards
+        } else if let legacyBoards = try? decoder.decode([BoardHistory.BoardInfo].self, from: data) {
+            boards = legacyBoards
+        } else {
             return []
         }
-
-        return Array(recents.sorted { $0.updatedAt > $1.updatedAt }.prefix(10))
+        return Array(boards.sorted { $0.updatedAt > $1.updatedAt }.prefix(10))
     }
 
     private static func loadBoard(from url: URL, decoder: JSONDecoder) -> BoardProject? {

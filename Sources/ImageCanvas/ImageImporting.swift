@@ -5,7 +5,7 @@ import UniformTypeIdentifiers
 
 enum ImageImporting {
     static let supportedExtensions: Set<String> = [
-        "jpg", "jpeg", "png", "gif", "webp", "heic", "heif"
+        "jpg", "jpeg", "png", "psd", "gif", "webp", "heic", "heif"
     ]
 
     static func imageURLs(from urls: [URL]) -> [URL] {

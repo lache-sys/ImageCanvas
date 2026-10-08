@@ -4,6 +4,8 @@ extension Notification.Name {
     static let imageCanvasAddImages = Notification.Name("imageCanvasAddImages")
     static let imageCanvasOpenFolder = Notification.Name("imageCanvasOpenFolder")
     static let imageCanvasNewBoard = Notification.Name("imageCanvasNewBoard")
+    static let imageCanvasNewEmptyTab = Notification.Name("imageCanvasNewEmptyTab")
+    static let imageCanvasNewTab = Notification.Name("imageCanvasNewTab")
     static let imageCanvasToggleChrome = Notification.Name("imageCanvasToggleChrome")
     static let imageCanvasToggleDrawingMode = Notification.Name("imageCanvasToggleDrawingMode")
     static let imageCanvasDisableDrawingMode = Notification.Name("imageCanvasDisableDrawingMode")

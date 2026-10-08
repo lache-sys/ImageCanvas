@@ -23,6 +23,17 @@ struct ImageCanvasApp: App {
                 }
                 .keyboardShortcut("n", modifiers: .command)
 
+
+                Button("New Tab") {
+                    post(.imageCanvasNewTab)
+                }
+                .keyboardShortcut("t", modifiers: [.command])
+
+                Button("New Tab with Empty Board") {
+                    post(.imageCanvasNewEmptyTab)
+                }
+                .keyboardShortcut("t", modifiers: [.command, .shift])
+
                 Button("Add Images...") {
                     post(.imageCanvasAddImages)
                 }
@@ -168,7 +179,6 @@ struct ImageCanvasApp: App {
         NotificationCenter.default.post(name: name, object: object)
     }
 }
-
 private struct ImageCanvasArrangementCommands: Commands {
     var body: some Commands {
         CommandMenu("Arrange") {

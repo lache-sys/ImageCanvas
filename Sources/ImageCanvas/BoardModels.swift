@@ -62,9 +62,17 @@ struct BoardItem: Codable, Identifiable, Equatable {
     var text: String?
     var isBold: Bool
     var isItalic: Bool
+    var items: [BoardItem] = []
+    var selectedItemIDs: Set<UUID> = []
 
-    init(fileURL: URL, pixelWidth: CGFloat, pixelHeight: CGFloat) {
-        id = UUID()
+    init(
+        fileURL: URL,
+        pixelWidth: CGFloat,
+        pixelHeight: CGFloat,
+        id: UUID = UUID(),
+        items: [BoardItem] = [],
+        selectedItemIDs: Set<UUID> = []
+    ) {
         kind = .image
         filePath = fileURL.standardizedFileURL.path
         fileName = fileURL.lastPathComponent
@@ -77,6 +85,9 @@ struct BoardItem: Codable, Identifiable, Equatable {
         text = nil
         isBold = false
         isItalic = false
+        self.id = id
+        self.items = items
+        self.selectedItemIDs = selectedItemIDs
     }
 
     init(text: String = "", at point: CGPoint) {
